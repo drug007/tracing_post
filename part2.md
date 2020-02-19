@@ -15,6 +15,9 @@ lttng
 
 gdb scripts usage example (http://dkhramov.dp.ua/Comp.GDBScripts#.XkV4gqhn3uP)
 
+futher reading: 
+- [Profiling D's Garbage Collection with Bpftrace](https://theartofmachinery.com/2019/04/26/bpftrace_d_gc.html)
+
 ## Conclusion
 
 Summary for both parts:
