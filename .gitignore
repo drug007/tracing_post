@@ -1,2 +1,4 @@
 /tracing-gdb
 .dub
+/tracing-usdt
+/tracing-writef

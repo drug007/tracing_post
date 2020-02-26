@@ -1,0 +1,62 @@
+BEGIN
+{
+	@counter = 0
+}
+
+END
+{
+	clear(@counter);
+	clear(@last);
+	exit()
+}
+
+usdt:./tracing-usdt:dlang:CaseOne
+{
+	@last["CaseOne"] = nsecs;
+}
+
+usdt:./tracing-usdt:dlang:CaseOne_return
+{
+	if (@last["CaseOne"] != 0)
+	{
+		$tmp = nsecs;
+		$period = ($tmp - @last["CaseOne"]) / 1000000;
+		printf("%d:\tEvent CaseOne   took: %d ms\n", @counter++, $period);
+		@last["CaseOne"] = $tmp;
+		@timing = hist($period);
+	}
+}
+
+usdt:./tracing-usdt:dlang:CaseTwo
+{
+	@last["CaseTwo"] = nsecs;
+}
+
+usdt:./tracing-usdt:dlang:CaseTwo_return
+{
+	if (@last["CaseTwo"] != 0)
+	{
+		$tmp = nsecs;
+		$period = ($tmp - @last["CaseTwo"]) / 1000000;
+		printf("%d:\tEvent CaseTwo   took: %ld ms\n", @counter++, $period);
+		@last["CaseTwo"] = nsecs;
+		@timing = hist($period);
+	}
+}
+
+usdt:./tracing-usdt:dlang:CaseThree
+{
+	@last["CaseThree"] = nsecs;
+}
+
+usdt:./tracing-usdt:dlang:CaseThree_return
+{
+	if (@last["CaseThree"] != 0)
+	{
+		$tmp = nsecs;
+		$period = ($tmp - @last["CaseThree"]) / 1000000;
+		printf("%d:\tEvent CaseThree took: %ld ms\n", @counter++, $period);
+		@last["CaseTwo"] = nsecs;
+		@timing = hist($period);
+	}
+}
