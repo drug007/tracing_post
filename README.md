@@ -1,4 +1,4 @@
-# Tracing D applications
+# Tracing D Applications
 
 Developing an application for linux you may need to monitor your application characteristics in run-time, for example to estimate its performance or memory consumption. There are several options to do it and some of them are:
 - means provided by used programming language (for example using writef to print to standard output aka printf debugging)
@@ -44,8 +44,8 @@ Before continuing to make things simpler we define what is logging, tracing and 
 - profiling implies tracing the application and its analysis to derive new information
 (how to say that these defenitions can be considered as subjective and other people can give them other description)
 
-## writef based approach
-The first way to trace our application is naive (but can be very usefull nevertheless)- using writef(ln) function of std library to output info into file. Someone can say that this is nothing than logging and D even has logger in its std library. Yes, you can say that, in some degree logging can be considered as light version of tracing. Our code:
+## Writef Based Approach
+The first way to trace our application is naive (but can be very usefull nevertheless)- using writef(ln) function of std library to output info into file. Someone can say that this is nothing than logging and D even has logger in its std library. Yes, you can say that, in some degree logging can be considered as light version of tracing. Our [code](tracing_writef.d):
 ```D
     case Event.One:
             auto sw = StopWatch(AutoStart.no);
@@ -86,8 +86,8 @@ con:
 
 So in fact this approach is very suitable on early stage of developing and less useful in final product. Although if tracing logic is fixed and well defined this approach can be used in production ready applications/libraries - for example this way of dmd frontend tracing was suggested by Stefan Koch to [profile perfomance and memory consumption](https://github.com/dlang/dmd/pull/7792).
 
-## gdb based approach  (another variant: Tracing with debugger)
-Debugger is more advanced way to trace our application. You do not need to modify your application to change the methodology of tracing that is very useful in production. Instead of compiling tracing logic in the application you set breakpoints. When gdb stop the application execution on breakpoint you can use large arsenal of gdb functionality to inspect internal state of inferior (this term used in gdb means the binary being debugged). You do not have ability to use Phobos directly but you can use helpers and moreover you have access to registers and stack - unavailable option in case of writef debugging. Let's take a look at our code for `Event.One`:
+## GDB Based Approach
+Debugger is more advanced way to trace our application. You do not need to modify your application to change the methodology of tracing that is very useful in production. Instead of compiling tracing logic in the application you set breakpoints. When gdb stop the application execution on breakpoint you can use large arsenal of gdb functionality to inspect internal state of inferior (this term used in gdb means the binary being debugged). You do not have ability to use Phobos directly but you can use helpers and moreover you have access to registers and stack - unavailable option in case of writef debugging. Let's take a look at our [code](tracing_gdb.d) for `Event.One`:
 ```D
     case Case.One:
 
@@ -95,7 +95,7 @@ Debugger is more advanced way to trace our application. You do not need to modif
 
     break;
 ```
-As you can see now our code does not contain any tracing code and is much cleaner. Tracing logic is placed in separate file, `trace.gdb`. Its content is:
+As you can see now our code does not contain any tracing code and is much cleaner. Tracing logic is placed in separate file, [trace.gdb](trace.gdb). Its content is:
 ```
 set pagination off
 set print address off
@@ -141,7 +141,7 @@ The point about hard breakpoint setting in gdb is based on the fact that to set 
 
 Good example of using gdb for tracing can be a project of another bright member of D community, Vladimir Panteleev - [dmdprof](https://github.com/CyberShadow/dmdprof)
 
-## Usdt base approach
+## Usdt Base Approach
 
 So far we have two ways to trace our application that are complimentary each other. But is there a way to union all advantages of these two ways together and avoid their drawbacks? Of course, the answer is yes. In fact there are several ways to achieve this but hereafter only one will be discussed - user space statically defined tracing. 
 Warning: Unfortunately due to historical reasons Linux tracing ecosystem is fragmented and rather confusing. There is no plain and simple introduction. Get ready to invest much time if you want to understand this domain.
