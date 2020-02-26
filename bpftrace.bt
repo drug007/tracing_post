@@ -7,7 +7,6 @@ END
 {
 	clear(@counter);
 	clear(@last);
-	exit()
 }
 
 usdt:./tracing-usdt:dlang:CaseOne
