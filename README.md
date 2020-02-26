@@ -1,7 +1,7 @@
 # Tracing D applications
 
 Developing an application for linux you may need to monitor your application characteristics in run-time, for example to estimate its performance or memory consumption. There are several options to do it and some of them are:
-- means provided by used programming language (for example using writefln to print to standard output aka printf debugging)
+- means provided by used programming language (for example using writef to print to standard output aka printf debugging)
 - debuggers (using scripts or remote tracing)
 - OS specific tracing framework (linux {k|u}probes and usdt probes, linux kernel event, performance events in windows etc)
 
@@ -44,7 +44,7 @@ Before continuing to make things simpler we define what is logging, tracing and 
 - profiling implies tracing the application and its analysis to derive new information
 (how to say that these defenitions can be considered as subjective and other people can give them other description)
 
-## writefln based approach (another variant: Builtin tracing)
+## writef based approach
 The first way to trace our application is naive (but can be very usefull nevertheless)- using writef(ln) function of std library to output info into file. Someone can say that this is nothing than logging and D even has logger in its std library. Yes, you can say that, in some degree logging can be considered as light version of tracing. Our code:
 ```D
     case Event.One:
@@ -58,7 +58,7 @@ The first way to trace our application is naive (but can be very usefull neverth
         break;
             
 ```
-So we just used `StopWatch` from Phobos and measure execution time of code block we are interested in. It's simple and even trivial. Also we have all might of Phobos to implement our ideas. Run the application by command `dub tracing_writefln.d` and look at its output:
+So we just used `StopWatch` from Phobos and measure execution time of code block we are interested in. It's simple and even trivial. Also we have all might of Phobos to implement our ideas. Run the application by command `dub tracing_writef.d` and look at its output:
 ```
 Running ./example-writef 
 0:      Event One took:   584 ms, 53 μs, and 5 hnsecs
@@ -87,7 +87,7 @@ con:
 So in fact this approach is very suitable on early stage of developing and less useful in final product. Although if tracing logic is fixed and well defined this approach can be used in production ready applications/libraries - for example this way of dmd frontend tracing was suggested by Stefan Koch to [profile perfomance and memory consumption](https://github.com/dlang/dmd/pull/7792).
 
 ## gdb based approach  (another variant: Tracing with debugger)
-Debugger is more advanced way to trace our application. You do not need to modify your application to change the methodology of tracing that is very useful in production. Instead of compiling tracing logic in the application you set breakpoints. When gdb stop the application execution on breakpoint you can use large arsenal of gdb functionality to inspect internal state of inferior (this term used in gdb means the binary being debugged). You do not have ability to use Phobos directly but you can use helpers and moreover you have access to registers and stack - unavailable option in case of writefln debugging. Let's take a look at our code for `Event.One`:
+Debugger is more advanced way to trace our application. You do not need to modify your application to change the methodology of tracing that is very useful in production. Instead of compiling tracing logic in the application you set breakpoints. When gdb stop the application execution on breakpoint you can use large arsenal of gdb functionality to inspect internal state of inferior (this term used in gdb means the binary being debugged). You do not have ability to use Phobos directly but you can use helpers and moreover you have access to registers and stack - unavailable option in case of writef debugging. Let's take a look at our code for `Event.One`:
 ```D
     case Case.One:
 
@@ -134,7 +134,7 @@ pro:
 
 con: 
   - using breakpoints in some cases may be inconvenient, annoying or impossible.
-  - gdb pretty-printing provides "less pretty" output because lack of fulle Phobos support comparing to writefln approach
+  - gdb pretty-printing provides "less pretty" output because lack of fulle Phobos support comparing to writef approach
   - sometimes gdb is not available in production
 
 The point about hard breakpoint setting in gdb is based on the fact that to set a breakpoint in gdb you can use only an address, a line number or a function name (see [gdb manual](https://www.sourceware.org/gdb/onlinedocs/gdb/Set-Breaks.html#Set-Breaks)). Using an address is too low level and inconvenient. Line numbers are ephemerial and can easily be changed by developers so your scripts will be broken and this is annoying. Function name is convenient and stable but is useless if you need to place tracing probe inside a function.
@@ -165,7 +165,7 @@ futher reading:
 
 Summary for both parts:
 
-Feature | writefln | gdb | usdt
+Feature | writef | gdb | usdt
 ------- | :------: | --- | ---
 pretty <br> printing | by means of Phobos <br> and other libs | by means of <br> [pretty-printing](https://www.sourceware.org/gdb/onlinedocs/gdb/Pretty-Printing.html) | limited builtins 
  low-level | no | yes | yes
