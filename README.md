@@ -38,11 +38,12 @@ foreach(counter; 0..total_cycles)
 where `doSomeWork` simulates CPU intensive job by using `Thread.sleep` static method.
 
 That is very common pattern where an application runs in cycle and in every iteration performs some job depending on the application state. Here we can see that the application has three code path (CaseOne, CaseTwo and CaseThree) and we need to trace the application in runtime and collect info about its timings.
-Before continuing to make things simpler we define what is logging, tracing and profiling hereafter:
-- logging means collecting of information only at some important points (like configuration reading has been completed successfully or failed), it provides high level view without extraneous information (no noise)
-- tracing implies much wider view of traced application so intentionally provides much more low level details, it is much accurate and detailed in comparance to logging
-- profiling implies tracing the application and its analysis to derive new information
-(how to say that these defenitions can be considered as subjective and other people can give them other description)
+
+### Logging, Tracing and Profiling
+When you develop applications some time or other you need to make some decision - does your application work like it should and if not what is wrong with it. There are different ways to achive it and some of them are logging, tracing and profiling. What is difference between them? One variant is:
+- if you know exactly what events you are interested in to make the decision - you do logging
+- if you don't know exactly what events you need to make a decision and you are forced to collect as many events as you can - you do tracing
+- if you collect some events and analyze them to derive new information - you do profiling
 
 ## Writef Based Approach
 The first way to trace our application is naive (but can be very usefull nevertheless)- using writef(ln) function of std library to output info into file. Someone can say that this is nothing than logging and D even has logger in its std library. Yes, you can say that, in some degree logging can be considered as light version of tracing. Our [code](tracing_writef.d):
