@@ -142,25 +142,61 @@ The point about hard breakpoint setting in gdb is based on the fact that to set 
 
 Good example of using gdb for tracing can be a project of another bright member of D community, Vladimir Panteleev - [dmdprof](https://github.com/CyberShadow/dmdprof)
 
-## Usdt Base Approach
+## Usdt Based Approach
 
-So far we have two ways to trace our application that are complimentary each other. But is there a way to union all advantages of these two ways together and avoid their drawbacks? Of course, the answer is yes. In fact there are several ways to achieve this but hereafter only one will be discussed - user space statically defined tracing. 
-Warning: Unfortunately due to historical reasons Linux tracing ecosystem is fragmented and rather confusing. There is no plain and simple introduction. Get ready to invest much time if you want to understand this domain.
+So far we have two ways to trace our application that are complimentary each other. But is there a way to union all advantages of these two ways together and avoid their drawbacks? Of course, the answer is yes. In fact there are several ways to achieve this but hereafter only one will be discussed - USDT, user land statically defined tracing. 
+Warning: Unfortunately due to historical reasons Linux tracing ecosystem is fragmented and rather confusing. There is no plain and simple introduction. Get ready to invest much more time if you want to understand this domain.
 
-The first well-known full-fledged tracing framework was DTrace developed by Sun Microsystem (originally, now it is open sourced and even licensed under GPL). Yes, there have been strace and ltrace for a long time but they were limited - for example they do not let you trace what happened inside function call. Today, DTrace is available in Solaris, FreeBSD, macOS and Oracle Linux. In fact DTrace is not available in Linux due to its initial license - the CDDL instead of GPL. In 2018 DTrace was relicensed under GPL but it was too late and now Linux has its own tracing ecosystem. As everything open source has disadvantages and in the current case it resulted in fragmentation - there are several tools/frameworks/etc that are solve the same problems in different ways but somehow and sometime can interoperate each other. To avoid this ambiguity hereafter only one animal of this zoo will be discussed: userland statically defined tracing.
+The first well-known full-fledged tracing framework was DTrace developed by Sun Microsystem (originally, now it is open sourced and even licensed under GPL). Yes, there have been strace and ltrace for a long time but they were limited - for example they do not let you trace what happened inside function call. Today, DTrace is available in Solaris, FreeBSD, macOS and Oracle Linux. In fact DTrace is not available in Linux due to its initial license - the CDDL instead of GPL. In 2018 DTrace was relicensed under GPL but it was too late and now Linux has its own tracing ecosystem. As everything open source has disadvantages and in the current case it resulted in fragmentation - there are several tools/frameworks/etc that are able to solve the same problems in different ways but somehow and sometime can interoperate each other. We will be using [bpftrace](https://github.com/iovisor/bpftrace) - high level tracing language for Linux eBPF. In D USDT probes are provided by [usdt](http://code.dlang.org/packages/usdt) library. Let's start from our [code](tracing_usdt.d):
+```D
+	case Case.One:
+		mixin(USDT_PROBE!("dlang", "CaseOne", kind));
 
-gdb has support for stap probes since v7.5 (2012, https://blog.sergiodj.net/2012/10/27/gdb-and-systemtap-probes-part-2.html)
+		doSomeWork;
 
-systemtap
-perf
-bcc
-bpftrace
-lttng
+		mixin(USDT_PROBE!("dlang", "CaseOne_return", kind));
+	break;
+```
+Here we mixed in two probes in the start and the end of the code we are interested in. It seems looking like our first example, `tracing_writef` but huge difference is that there is no any logic here. We only defined two probes that are NOP instructions. That means that these probes has almost zero overhead and we can use them in production. The second great advantage is that we can change logic while the application is running. That just is impossible in case of using writef based approach. As we use bpftrace we need to write a script where we define actions that should be performed on our probes:
+```
+usdt:./tracing-usdt:dlang:CaseOne
+{
+	@last["CaseOne"] = nsecs;
+}
 
-gdb scripts usage example (http://dkhramov.dp.ua/Comp.GDBScripts#.XkV4gqhn3uP)
+usdt:./tracing-usdt:dlang:CaseOne_return
+{
+	if (@last["CaseOne"] != 0)
+	{
+		$tmp = nsecs;
+		$period = ($tmp - @last["CaseOne"]) / 1000000;
+		printf("%d:\tEvent CaseOne   took: %d ms\n", @counter++, $period);
+		@last["CaseOne"] = $tmp;
+		@timing = hist($period);
+	}
+}
+...
+```
+The first statement is the action block. It triggers on USDT probe that compiled in `./tracing-usdt` executable (it includes path to the executable) with `dlang` provider name and `CaseOne` probe name. When this probes hit then global (@ sign) AA `last` updates current timestamp for its element `CaseOne` - by doing this we store the time moment our code start running. The second action block defines actions performed on `CaseOne_return` probe hit. Here we first of all check if we already initialized corresponding element in @last AA. This is needed because our application can be already running when we run the script and we `CaseOne_return` probe can be fired before `CaseOne`. Then we calculate how many time our code execution took, output it and store in a histogramm `timing`.
 
-futher reading: 
+Blocks `BEGIN` and `END` define actions performed in the beginning and the end of the script and this is nothing more than initialization and finalization.
+
+Pro:
+- you have low-level access to your code (registers, memory etc)
+- minimal noise in your code
+- no recompilation/rerun if you decide to change tracing logic
+- almost zero overhead
+- can be effectively used in production
+Con:
+- learning USDT can be hard, particularly considering the state of linux tracing ecosystem
+- you need external tools (frontends)
+- OS specific
+
+Note: gdb has support for USDT probes since v7.5. You can modify `trace.gdb` script to set breakpoints using USDT probes instead of line numbers. That eases developing because you don't need to synchronize line numbers during source code modification.
+
+Futher reading: 
 - [Profiling D's Garbage Collection with Bpftrace](https://theartofmachinery.com/2019/04/26/bpftrace_d_gc.html)
+- [Systemtap Probes and Gdb](https://blog.sergiodj.net/2012/10/27/gdb-and-systemtap-probes-part-2.html)
 
 ## Conclusion
 
