@@ -184,6 +184,45 @@ The first statement is the action block. It triggers on USDT probe that compiled
 
 Blocks `BEGIN` and `END` define actions performed in the beginning and the end of the script and this is nothing more than initialization and finalization.
 
+Build and run the example:
+```
+dub build tracing_usdt.d   --single --compiler=ldmd2 # or gdc
+./tracing-usdt &                                     # run the example in background
+sudo bpftrace bpftrace.bt                            # start tracing session
+```
+Output:
+```
+Attaching 8 probes...
+0:	Event CaseThree took: 552 ms
+1:	Event CaseThree took: 779 ms
+2:	Event CaseTwo   took: 958 ms
+3:	Event CaseOne   took: 1174 ms
+4:	Event CaseOne   took: 1059 ms
+5:	Event CaseThree took: 481 ms
+6:	Event CaseTwo   took: 1044 ms
+7:	Event CaseThree took: 611 ms
+8:	Event CaseOne   took: 545 ms
+9:	Event CaseTwo   took: 1038 ms
+10:	Event CaseOne   took: 913 ms
+11:	Event CaseThree took: 989 ms
+12:	Event CaseOne   took: 1149 ms
+13:	Event CaseThree took: 541 ms
+14:	Event CaseTwo   took: 1072 ms
+15:	Event CaseOne   took: 633 ms
+16:	Event CaseTwo   took: 832 ms
+17:	Event CaseTwo   took: 1120 ms
+^C
+
+
+
+@timing: 
+[256, 512)             1 |@@@@@                                               |
+[512, 1K)             10 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@|
+[1K, 2K)               7 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                |
+```
+
+In the session output above there are only 18 lines insead of 20 - it's because `tracing-usdt` had been started before the bpftrace script so the first two events were lost. Also you need to break the example running by `Ctrl-C` after `tracing-usdt` completes. After the bpftrace script stops execution it ouputs content of `timing` map as histogram. The histogram says that one time code execution takes value between 256 and 512 ms, ten times between 512 and 1024 ms and seven times more between 1024 and 2048 ms. This builtin statistic ease bpftrace using.
+
 Pro:
 - you have low-level access to your code (registers, memory etc)
 - minimal noise in your code
